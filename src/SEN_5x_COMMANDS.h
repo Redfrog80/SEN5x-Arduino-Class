@@ -2,12 +2,12 @@
 #define SEN_5X_COMMANDS
 /*Starts the measurement. After power up, the module is in Idle-Mode. Before any measurement values can be read, the
 Measurement-Mode needs to be started using this command.*/
-#define START_MEASUREMENT uint16_t(0x0021)
+#define SEN_5X_START_MEASUREMENT uint16_t(0x0021)
 /*Starts a continuous measurement without PM. Only humidity, temperature, VOC, and NOx are available in this mode.
 Laser and fan are switched off to keep power consumption low.*/
-#define START_MEASUREMENT_RHT_GAS_ONLY uint16_t(0x0037)
+#define SEN_5X_START_MEASUREMENT_RHT_GAS_ONLY 0x0037
 /*Stops the measurement. Use this command to return to the initial state (Idle-Mode).*/
-#define STOP_MEASUREMENT uint16_t(0x0104)
+#define SEN_5X_STOP_MEASUREMENT 0x0104
 /*This command can be used for polling to find out when new measurements are available.
 
 READ/WRITE DATA:
@@ -24,7 +24,7 @@ Byte [2]:
 Description: checksum for bytes [0:1]
 
 */
-#define READ_DATA_READY_FLAG uint16_t(0x0202)
+#define SEN_5X_READ_DATA_READY_FLAG 0x0202
 /*Reads the measured values from the sensor module and resets the "Data-Ready Flag". If the sensor module is in
 Measurement-Mode, an updated measurement value is provided every second and the "Data-Ready Flag" is set. If no
 synchronized readout is desired, the "Data-Ready Flag" can be ignored. The command "Read Measured Values" always
@@ -98,7 +98,7 @@ Description: NOx Index
 Byte [23]:
 Description: checksum for [21:22]
 */
-#define READ_MEASURED_VALUES uint16_t(0x03C4)
+#define SEN_5X_READ_MEASURED_VALUES 0x03C4
 /*These commands allow to compensate temperature effects of the design-in at customer side by applying a custom
 temperature offset to the ambient temperature. The compensated ambient temperature is calculated as follows:
 
@@ -139,7 +139,7 @@ Description: Time constant in seconds (default value: 0)
 Byte [8]: 
 Description: checksum for [6:7]
 */
-#define READ_WRITE_TEMP_COMP_PARAMETERS uint16_t(0x60B2)
+#define SEN_5X_READ_WRITE_TEMP_COMP_PARAMETERS 0x60B2
 /*The temperature compensation algorithm is optimized for a cold start by default, i.e., it is assumed that the "Start
 Measurement" commands are called on a device not yet warmed up by previous measurements. If the measurement is
 started on a device that is already warmed up, this parameter can be used to improve the initial accuracy of the
@@ -159,7 +159,7 @@ Description: Warm start behavior as a value in the range from
 Byte [2]: 
 Description: checksum for [0:1]
 */
-#define READ_WRITE_WARM_START_PARAMETERS uint16_t(0x60C6)
+#define SEN_5X_READ_WRITE_WARM_START_PARAMETERS 0x60C6
 /*The VOC algorithm can be customized by tuning 6 different parameters. More details on the tuning instructions are
 provided in the application note "Engineering Guidelines for SEN5x". Note that this command is available only in idle
 mode. In measure mode, this command has no effect. In addition, it has no effect if at least one parameter is outside
@@ -234,7 +234,7 @@ Allowed values are in range 1..1000. The default value is 230.
 Byte [17]: 
 Description: checksum for [15:16]
 */
-#define READ_WRITE_VOC_ALG_TUNING_PARAMETERS 0x60D0
+#define SEN_5X_READ_WRITE_VOC_ALG_TUNING_PARAMETERS 0x60D0
 /*The NOx algorithm can be customized by tuning 6 different parameters. More details on the tuning instructions are
 provided in the application note "Engineering Guidelines for SEN5x". This command is available only in idle mode. In
 measure mode, this command has no effect. In addition, it has no effect if at least one parameter is outside the
@@ -309,7 +309,7 @@ Allowed values are in range 1..1000. The default value is 230.
 Byte [17]: 
 Description: checksum for [15:16]
 */
-#define READ_WRITE_NOX_ALG_TUNING_PARAMETERS 0x60E1
+#define SEN_5X_READ_WRITE_NOX_ALG_TUNING_PARAMETERS 0x60E1
 /*By default, the RH/T acceleration algorithm is optimized for a sensor which is positioned in free air. If the sensor is
 integrated into another device, the ambient RH/T output values might not be optimal due to different thermal behavior.
 This parameter can be used to adapt the RH/T acceleration behavior for the actual use-case, leading in an
@@ -334,7 +334,7 @@ Description: RH/T acceleration mode.
 Byte [2]: 
 Description: checksum for [0:1]
 */
-#define READ_WRITE_RHT_ACCELERATION_MODE 0x60F7
+#define SEN_5X_READ_WRITE_RHT_ACCELERATION_MODE 0x60F7
 /*Allows to backup and restore the VOC algorithm state to resume operation after a short interruption, skipping initial
 learning phase. By default, the VOC algorithm resets its state to initial values each time a measurement is started,
 even if the measurement was stopped only for a short time. So, the VOC index output value needs a long time until it is
@@ -346,10 +346,10 @@ READ/WRITE DATA AND PARAMETERS
 VOC algorithm state is comprised of 8 bytes and 4 checksums (2 bytes per checksum)
 
 */
-#define READ_WRITE_VOC_ALG_STATE 0x60F7
+#define SEN_5X_READ_WRITE_VOC_ALG_STATE 0x60F7
 /*Starts the fan-cleaning manually. This command can only be executed in Measurement-Mode. For more details, note
 the explanations given in 4.2 Fan Auto Cleaning.*/
-#define START_FAN_CLEANING 0x5607 
+#define SEN_5X_START_FAN_CLEANING 0x5607 
 /*Reads/Writes the interval [s] of the periodic fan-cleaning. For more details, note the explanations given in 5.2 Fan Auto
 Cleaning. Please note that since this configuration is volatile, it will be reverted to the default value after a device reset.
 
@@ -370,7 +370,7 @@ Byte [5]:
 Description: checksum for [3:4]
 }
 */
-#define READ_WRITE_AUTO_CLEANING_INITERVAL 0x8004
+#define SEN_5X_READ_WRITE_AUTO_CLEANING_INITERVAL 0x8004
 /*This command returns the product name SEN5x (SEN50, SEN54 or SEN55). It is defined as a string value with a
 maximum length of 32 ASCII characters (including terminating null-character).
 
@@ -394,7 +394,7 @@ Description: ASCII Characters [45:46]
 Byte [47]:
 Description: checksum for [45:46]
 */
-#define READ_PRODUCT_NAME 0xD014
+#define SEN_5X_READ_PRODUCT_NAME 0xD014
 /*This command returns the requested serial number. It is defined as a string value with a maximum length of 32 ASCII
 characters (including terminating null-character).
 
@@ -417,7 +417,7 @@ Description: ASCII Characters [45:46]
 
 Byte [47]:
 Description: checksum for [45:46]*/
-#define READ_SERIAL_NUMBER 0xD033
+#define SEN_5X_READ_SERIAL_NUMBER 0xD033
 /*Get firmware version.
 
 READ/WRITE DATA:
@@ -430,7 +430,7 @@ Description: Reserved
 
 Byte [2]:
 Description: checksum for [0:1] */
-#define READ_FIRMWARE_VERSION 0xD100
+#define SEN_5X_READ_FIRMWARE_VERSION 0xD100
 /*Use this command to read the Device Status Register. For more details, note the explanations given in section 5.4
 Device Status Register.
 
@@ -451,10 +451,10 @@ Byte [5]:
 Description: checksum for [3:4]
 }
 */
-#define READ_DEVICE_STATUS 0xD206 
+#define SEN_5X_READ_DEVICE_STATUS 0xD206 
 /*Clears all flags in device status register.*/
-#define CLEAR_DEVICE_STATUS 0xD210 
+#define SEN_5X_CLEAR_DEVICE_STATUS 0xD210 
 /*Device software reset command. After calling this command, the module is in the same state as after a power reset.*/
-#define RESET 0xD304
+#define SEN_5X_RESET 0xD304
 
 #endif //SEN_5X_COMMANDS

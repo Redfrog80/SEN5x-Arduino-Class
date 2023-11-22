@@ -21,13 +21,14 @@ bool ready_flag = false;
 uint16_t* unull = nullptr;
 int16_t* snull = nullptr;
 
-uint16_t mc_pm1p0;
-uint16_t mc_pm2p5;
-uint16_t mc_pm4p0; 
-uint16_t mc_pm10;
-int16_t CAH;
-int16_t CAT;
-int16_t VOC; 
+float mc_pm1p0;
+float mc_pm2p5;
+float mc_pm4p0; 
+float mc_pm10;
+float CAH;
+float CAT;
+float VOC; 
+float NOx;
 
 char buf[32] = {};
 
@@ -57,7 +58,7 @@ void loop(){
     sensor.is_data_ready(&ready_flag);
     if(ready_flag)
     {
-        sensor.get_measured_scaled_values(&mc_pm1p0,&mc_pm2p5,&mc_pm4p0,&mc_pm10,&CAH,&CAT,&VOC,snull);
+        sensor.get_measured_scaled_values(&mc_pm1p0,&mc_pm2p5,&mc_pm4p0,&mc_pm10,&CAH,&CAT,&VOC,&NOx);
 
         Serial.print(F("PM: "));
         Serial.print(mc_pm1p0);
