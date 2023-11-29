@@ -217,7 +217,7 @@ void SEN_5X::getProductName(SEN_5X_Product_Name& name)
     collectData(SEN_5X_READ_PRODUCT_NAME, 48, &name);
 }
 void SEN_5X::getSerialNumber(SEN_5X_Serial_Number& serialNumber)
-{
+{ 
     collectData(SEN_5X_READ_SERIAL_NUMBER, 48, &serialNumber);
 }
 void SEN_5X::getFirmwareVersion(SEN_5X_Firmware_Version& firmwareVersion)
