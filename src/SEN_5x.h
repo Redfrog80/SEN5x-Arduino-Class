@@ -1,15 +1,12 @@
 /**
- * @file SEN_5x.h
+ * @file SEN_5X.h
  * @author Redfrog80
- * @brief This is very WIP class for the SEN5x series of
- * environment sensors. I cannot gurantee forward/backwards
- * compatibility of methods until 1.0.
+ * @brief This is the header file for the SEN5X class
  * @version 0.2
- * @date 2023-03-19
+ * @date 2023-11-28
  * 
  * @copyright Copyright (c) 2023
- * 
- */
+ * */
 
 #ifndef SEN_5X_HEADER
 #define SEN_5X_HEADER
@@ -23,19 +20,31 @@
 
 class SEN_5X
 {
-    char* buf[48] = {};
+    uint8_t buf[48] = {};
 
-    void send_command(uint16_t command);
+    inline void send_command(uint16_t command);
     
-    void validate_checksum(char* buf, uint8_t size);
+    bool validate_checksum(uint8_t* buf, uint8_t size);
 
-    void generate_checksum(char* buf, uint8_t size);
+    void generate_checksum(uint8_t* buf, uint8_t size);
+
+    inline void swap_endianess(uint8_t* buf, uint8_t size);
+    inline void swap_endianess_uint16(uint16_t& n);
     
+    inline void truncate_checksum(uint8_t* buf, uint8_t size);
+
+    void collectData(const uint16_t command, const uint8_t& size, const uint8_t d = 20);
+    void collectData(const uint16_t command, const uint8_t& size, void* dest, const uint8_t d = 20);
+
+    void read(uint8_t* buf, uint8_t size);
+    void write(uint8_t* buf, uint8_t size);
+
     public:
     
     void start();
     void startRHTGasOnly();
     void stop();
+    void reset();
 
     bool isDataReady();
 
@@ -44,6 +53,9 @@ class SEN_5X
 
     void getTempCompensationParams(SEN_5X_Temperature_Compensation_Params& params);
     void setTempCompensationParams(SEN_5X_Temperature_Compensation_Params& params);
+
+    void getWarmStartParam(SEN_5X_Warm_Start_Param& param);
+    void setWarmStartParam(SEN_5X_Warm_Start_Param& param);
 
     void getVOCTuningParams(SEN_5X_VOC_Algorithm_Tuning_Params& params);
     void setVOCTuningParams(SEN_5X_VOC_Algorithm_Tuning_Params& params);
@@ -76,8 +88,6 @@ class SEN_5X
     bool isFanOk();
     
     void clearDeviceStatus();
-    
-    void reset();
 };
 
 #endif //SEN_5X_HEADER

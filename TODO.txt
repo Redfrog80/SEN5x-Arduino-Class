@@ -1,20 +1,6 @@
-(0.2) 
-Add 32 byte internal buffer for rx frame (don't want to modify wire library)
+Clean up checksum validation / generator code
+Clean up isDataReady function
+Remaining status functions
+Error types / error reporting
+All setters
 
-Add helper method for type conversion 
-
-Enable read_data and send_data to work with arbitrary numbers of bytes.
-
-Refactor prexisting methods to work with the new read_data and write_data. 
-
-Break apart sensor flag method into individual methods for each flag and keep track of the states internally so that they're readily availiaible.
-
-Make existing getters pass by reference and setters pass by value. (getting rid of the pointer nonsense)
-
-Make additional getters for specific measurements.
-
-(0.3)
-Properly implment error handling for use by end user.
-
-(0.4)
-We'll see.

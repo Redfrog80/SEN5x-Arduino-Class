@@ -1,7 +1,11 @@
-This is very WIP and subject to change. I cannot gurantee forward/backwards compatibility of methods until 1.0.
+The arduino SEN5X class is a sensor interface for the SEN5X series of
+environmental sensors. I started this project to teach myself how to build
+software for communicating with periphrials using an arduino.
 
-I've implemented everything in the official documentation save for getting specific sensor status flags.
+When I first worked on this, my code was far from ideal, and I have learned
+a lot since then. This time around I'm rewriting everything into something
+much easier to use and or comprehend.
 
-I've tested sending commands and getting data from the sensor, but I have not tested the set methods. See the .ino file for basic usage.
+What I have done so far:
+    I've completed (but have not tested) all of the getters
 
-All of the set/get methods require a pointer to the data you want to r/w to. (for now).
