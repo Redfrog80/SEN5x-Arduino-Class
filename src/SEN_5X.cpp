@@ -16,10 +16,8 @@ inline void SEN_5X::send_command(uint16_t command)
 
 inline void SEN_5X::swap_endianess(uint8_t* buf, uint8_t size)
 {
-    while ((size = size-2))
-    {
-        swap_endianess_uint16(*(uint16_t*)(buf + size));
-    }
+    for (uint8_t i = 0; i < size; i+=2)
+        swap_endianess_uint16(*(uint16_t*)(buf + i));
 }
 
 inline void SEN_5X::swap_endianess_uint16(uint16_t& n)
