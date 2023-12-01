@@ -31,21 +31,28 @@ inline void SEN_5X::truncate_checksum(uint8_t* buf, uint8_t size)
         memmove((buf + i * 2),(buf + i * 3),sizeof(uint16_t));
 }
 
-void SEN_5X::collectData(const uint16_t command, const uint8_t& size, const uint8_t d)
+SEN_5X_STATUS_CODES SEN_5X::collectData(const uint16_t command, const uint8_t& size, const uint8_t d)
 {
     send_command(command);
     delay(d);
     read((uint8_t*)&buf, size);
+    
+    SEN_5X_STATUS_CODES error = validate_checksum(buf, size);
+    if (error != SEN_5X_STATUS_OK) return error;
 
     truncate_checksum(buf,size);
 
     swap_endianess(buf, size-size/3);
+    return error;
 }
 
-void SEN_5X::collectData(const uint16_t command, const uint8_t& size, void* dest, const uint8_t d)
+SEN_5X_STATUS_CODES SEN_5X::collectData(const uint16_t command, const uint8_t& size, void* dest, const uint8_t d)
 {
-    collectData(command, size, d);
+    SEN_5X_STATUS_CODES error = collectData(command, size, d);
+    if (error != SEN_5X_STATUS_OK) return error;
+    
     memcpy(dest, buf, size-size/3);
+    return error;
 }
 
 void SEN_5X::write(uint8_t* buf, uint8_t size)
@@ -83,56 +90,43 @@ void SEN_5X::reset()
     delay(100);
 }
 
-bool SEN_5X::validate_checksum(uint8_t* buf, uint8_t size)
+uint8_t SEN_5X::generate_checksum(uint8_t buf[2])
 {
-    for (uint8_t j = 0; j < size/3; ++j)
+    uint8_t crc = 0xFF;
+    for(int i = 0; i < 2; i++) 
     {
-        uint8_t offset = j*3;
-        uint8_t crc = 0xFF;
-        
-        for(int i = 0; i < 2; i++) 
+        crc ^= buf[i];
+        for(uint8_t bit = 8; bit > 0; --bit) 
         {
-            crc ^= buf[i+offset];
-            for(uint8_t bit = 8; bit > 0; --bit)
-            {
-                if(crc & 0x80) 
-                {
-                    crc = (crc << 1) ^ 0x31u;
-                } 
-                else 
-                {
-                    crc = (crc << 1);
-                }
-            }
+            if(crc & 0x80) 
+                crc = (crc << 1) ^ 0x31u;
+            else 
+                crc = (crc << 1);
         }
-        if (buf[offset+2] != crc)
-            return false;
     }
-    return true;
+    return crc;
 }
+
 void SEN_5X::generate_checksum(uint8_t* buf, uint8_t size)
 {
     for (uint8_t j = 0; j < size/3; ++j)
     {
         uint8_t offset = j*3;
-        uint8_t crc = 0xFF;
-        for(int i = 0; i < 2; i++) 
-        {
-            crc ^= buf[i+offset];
-            for(uint8_t bit = 8; bit > 0; --bit) 
-            {
-                if(crc & 0x80) 
-                {
-                    crc = (crc << 1) ^ 0x31u;
-                } 
-                else 
-                {
-                    crc = (crc << 1);
-                }
-            }
-        }
+        uint8_t crc = generate_checksum(buf+offset);
         buf[offset+2] = crc;
     }
+}
+
+SEN_5X_STATUS_CODES SEN_5X::validate_checksum(uint8_t* buf, uint8_t size)
+{
+    for (uint8_t j = 0; j < size/3; ++j)
+    {
+        uint8_t offset = j*3;
+        uint8_t crc = generate_checksum(buf+offset);
+        if (buf[offset+2] != crc)
+            return SEN_5X_STATUS_ERROR_BAD_CHECKSUM;
+    }
+    return SEN_5X_STATUS_OK;
 }
 
 //TODO CLEAN UP!
@@ -144,20 +138,20 @@ bool SEN_5X::isDataReady()
     delay(20);
     read(buf, size);
 
-    if (!validate_checksum(buf, size)) return false;
+    SEN_5X_STATUS_CODES error = validate_checksum(buf, size);
+    if (error != SEN_5X_STATUS_OK) return false;
 
     return buf[1];
 }
-void SEN_5X::getUnscaledMeasurement(SEN_5X_Measured_Values& values)
+SEN_5X_STATUS_CODES SEN_5X::getUnscaledMeasurement(SEN_5X_Measured_Values& values)
 {
-    const uint8_t size = 24;
-    collectData(SEN_5X_READ_MEASURED_VALUES, size, &values);
+    return collectData(SEN_5X_READ_MEASURED_VALUES, 24, &values);
 }
-void SEN_5X::getScaledMeasurement(SEN_5x_Scaled_Measured_Values& values)
+SEN_5X_STATUS_CODES SEN_5X::getScaledMeasurement(SEN_5x_Scaled_Measured_Values& values)
 {
     const SEN_5X_Measured_Values* usvalues = (const SEN_5X_Measured_Values*)buf;
     
-    collectData(SEN_5X_READ_MEASURED_VALUES, 24);
+    SEN_5X_STATUS_CODES error = collectData(SEN_5X_READ_MEASURED_VALUES, 24);
 
     values.PM1 = usvalues->PM1/10.f;
     values.PM25 = usvalues->PM25/10.f;
@@ -167,36 +161,38 @@ void SEN_5X::getScaledMeasurement(SEN_5x_Scaled_Measured_Values& values)
     values.CAT = usvalues->CAT/200.f;
     values.VOC = usvalues->VOC/10.f;
     values.NOX = usvalues->NOX/10.f;
+
+    return error;
 }
 
-void SEN_5X::getTempCompensationParams(SEN_5X_Temperature_Compensation_Params& params)
+SEN_5X_STATUS_CODES SEN_5X::getTempCompensationParams(SEN_5X_Temperature_Compensation_Params& params)
 {
-    collectData(SEN_5X_READ_WRITE_TEMP_COMP_PARAMETERS, 9, &params);
+    return collectData(SEN_5X_READ_WRITE_TEMP_COMP_PARAMETERS, 9, &params);
 }
 
-void SEN_5X::getWarmStartParam(SEN_5X_Warm_Start_Param& param)
+SEN_5X_STATUS_CODES SEN_5X::getWarmStartParam(SEN_5X_Warm_Start_Param& param)
 {
-    collectData(SEN_5X_READ_WRITE_WARM_START_PARAMETERS, 3, &param);
+    return collectData(SEN_5X_READ_WRITE_WARM_START_PARAMETERS, 3, &param);
 }
 
-void SEN_5X::getVOCTuningParams(SEN_5X_VOC_Algorithm_Tuning_Params& params)
+SEN_5X_STATUS_CODES SEN_5X::getVOCTuningParams(SEN_5X_VOC_Algorithm_Tuning_Params& params)
 {
-    collectData(SEN_5X_READ_WRITE_VOC_ALG_TUNING_PARAMETERS, 18, &params);
+    return collectData(SEN_5X_READ_WRITE_VOC_ALG_TUNING_PARAMETERS, 18, &params);
 }
 
-void SEN_5X::getNOxTuningParams(SEN_5X_NOX_Algorithm_Tuning_Params& params)
+SEN_5X_STATUS_CODES SEN_5X::getNOxTuningParams(SEN_5X_NOX_Algorithm_Tuning_Params& params)
 {
-    collectData(SEN_5X_READ_WRITE_NOX_ALG_TUNING_PARAMETERS, 18, &params);
+    return collectData(SEN_5X_READ_WRITE_NOX_ALG_TUNING_PARAMETERS, 18, &params);
 }
 
-void SEN_5X::getRHTAccelMode(SEN_5X_RHT_Accel_Mode& mode)
+SEN_5X_STATUS_CODES SEN_5X::getRHTAccelMode(SEN_5X_RHT_Accel_Mode& mode)
 {
-    collectData(SEN_5X_READ_WRITE_RHT_ACCELERATION_MODE, 3, &mode);
+    return collectData(SEN_5X_READ_WRITE_RHT_ACCELERATION_MODE, 3, &mode);
 }
 
-void SEN_5X::getVOCAlgorithmState(SEN_5X_VOC_Algorithm_State& state)
+SEN_5X_STATUS_CODES SEN_5X::getVOCAlgorithmState(SEN_5X_VOC_Algorithm_State& state)
 {
-    collectData(SEN_5X_READ_WRITE_VOC_ALG_STATE, 12, &state);
+    return collectData(SEN_5X_READ_WRITE_VOC_ALG_STATE, 12, &state);
 }
 
 void SEN_5X::startFanCleaning()
@@ -205,24 +201,24 @@ void SEN_5X::startFanCleaning()
     delay(20);
 }
 
-void SEN_5X::getFanCleaningInterval(SEN_5X_Auto_Cleaning_Interval& interval)
+SEN_5X_STATUS_CODES SEN_5X::getFanCleaningInterval(SEN_5X_Auto_Cleaning_Interval& interval)
 {
-    collectData(SEN_5X_READ_WRITE_AUTO_CLEANING_INITERVAL, 6, &interval);
+    return collectData(SEN_5X_READ_WRITE_AUTO_CLEANING_INITERVAL, 6, &interval);
 }
 
-void SEN_5X::getProductName(SEN_5X_Product_Name& name)
+SEN_5X_STATUS_CODES SEN_5X::getProductName(SEN_5X_Product_Name& name)
 {
-    collectData(SEN_5X_READ_PRODUCT_NAME, 48, &name);
+    return collectData(SEN_5X_READ_PRODUCT_NAME, 48, &name);
 }
-void SEN_5X::getSerialNumber(SEN_5X_Serial_Number& serialNumber)
+SEN_5X_STATUS_CODES SEN_5X::getSerialNumber(SEN_5X_Serial_Number& serialNumber)
 { 
-    collectData(SEN_5X_READ_SERIAL_NUMBER, 48, &serialNumber);
+    return collectData(SEN_5X_READ_SERIAL_NUMBER, 48, &serialNumber);
 }
-void SEN_5X::getFirmwareVersion(SEN_5X_Firmware_Version& firmwareVersion)
+SEN_5X_STATUS_CODES SEN_5X::getFirmwareVersion(SEN_5X_Firmware_Version& firmwareVersion)
 {
-    collectData(SEN_5X_READ_FIRMWARE_VERSION, 3, &firmwareVersion);
+    return collectData(SEN_5X_READ_FIRMWARE_VERSION, 3, &firmwareVersion);
 }
-void SEN_5X::getDeviceStatus(SEN_5X_Device_Status& status)
+SEN_5X_STATUS_CODES SEN_5X::getDeviceStatus(SEN_5X_Device_Status& status)
 {
-    collectData(SEN_5X_READ_DEVICE_STATUS, 6, &status);
+    return collectData(SEN_5X_READ_DEVICE_STATUS, 6, &status);
 }

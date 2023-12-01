@@ -24,17 +24,19 @@ class SEN_5X
 
     inline void send_command(uint16_t command);
     
-    bool validate_checksum(uint8_t* buf, uint8_t size);
-
+    uint8_t generate_checksum(uint8_t buf[2]);
+    
     void generate_checksum(uint8_t* buf, uint8_t size);
+
+    SEN_5X_STATUS_CODES validate_checksum(uint8_t* buf, uint8_t size);
 
     inline void swap_endianess(uint8_t* buf, uint8_t size);
     inline void swap_endianess_uint16(uint16_t& n);
     
     inline void truncate_checksum(uint8_t* buf, uint8_t size);
 
-    void collectData(const uint16_t command, const uint8_t& size, const uint8_t d = 20);
-    void collectData(const uint16_t command, const uint8_t& size, void* dest, const uint8_t d = 20);
+    SEN_5X_STATUS_CODES collectData(const uint16_t command, const uint8_t& size, const uint8_t d = 20);
+    SEN_5X_STATUS_CODES collectData(const uint16_t command, const uint8_t& size, void* dest, const uint8_t d = 20);
 
     void read(uint8_t* buf, uint8_t size);
     void write(uint8_t* buf, uint8_t size);
