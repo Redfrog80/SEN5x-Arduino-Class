@@ -2,27 +2,37 @@
  * @file SEN_5X.cpp
  * @author Redfrog80
  * @brief This is the implementation file for the SEN5X class
- * @version 0.2
- * @date 2023-11-28
+ * @version 0.2.1
+ * @date 2024-1-15
  * 
  * @copyright Copyright (c) 2023
  * */
 #include "SEN_5x.h"
 inline void SEN_5X::send_command(uint16_t command)
 {
-    swap_endianess_uint16(command);
+    swap_endianess_word(command);
     write((uint8_t*)&command, sizeof(command));
+}
+
+inline void SEN_5X::swap_endianess_words(uint8_t* buf, uint8_t size)
+{
+    for (uint8_t i = 0; i < size; i+=2)
+        swap_endianess_word(*(uint16_t*)(buf + i));
+}
+
+inline void SEN_5X::swap_endianess_word(uint16_t& n)
+{
+    n = (n >> 8) | (n << 8);
 }
 
 inline void SEN_5X::swap_endianess(uint8_t* buf, uint8_t size)
 {
-    for (uint8_t i = 0; i < size; i+=2)
-        swap_endianess_uint16(*(uint16_t*)(buf + i));
-}
-
-inline void SEN_5X::swap_endianess_uint16(uint16_t& n)
-{
-    n = (n >> 8) | (n << 8);
+    for (uint8_t i = 0; i < size; ++i)
+    {
+        uint8_t byte = buf[i];
+        buf[i] = buf[size-i-1];
+        buf[size-i-1] = byte;
+    }
 }
 
 inline void SEN_5X::truncate_checksum(uint8_t* buf, uint8_t size)
@@ -37,22 +47,14 @@ SEN_5X_STATUS_CODES SEN_5X::collectData(const uint16_t command, const uint8_t& s
     delay(d);
     read((uint8_t*)&buf, size);
     
-    SEN_5X_STATUS_CODES error = validate_checksum(buf, size);
-    if (error != SEN_5X_STATUS_OK) return error;
+    return validate_checksum(buf, size);
+    //TODO Go through and specify endianess stuff per method instead of trying to encapsulate it
+    // if (error != SEN_5X_STATUS_OK) return error;
 
-    truncate_checksum(buf,size);
+    // truncate_checksum(buf,size);
 
-    swap_endianess(buf, size-size/3);
-    return error;
-}
-
-SEN_5X_STATUS_CODES SEN_5X::collectData(const uint16_t command, const uint8_t& size, void* dest, const uint8_t d)
-{
-    SEN_5X_STATUS_CODES error = collectData(command, size, d);
-    if (error != SEN_5X_STATUS_OK) return error;
+    // swap_endianess_words(buf, size-size/3);
     
-    memcpy(dest, buf, size-size/3);
-    return error;
 }
 
 void SEN_5X::write(uint8_t* buf, uint8_t size)
@@ -129,29 +131,38 @@ SEN_5X_STATUS_CODES SEN_5X::validate_checksum(uint8_t* buf, uint8_t size)
     return SEN_5X_STATUS_OK;
 }
 
-//TODO CLEAN UP!
 bool SEN_5X::isDataReady()
 {
-    const uint8_t size = 3;
-    
-    send_command(SEN_5X_READ_DATA_READY_FLAG);
-    delay(20);
-    read(buf, size);
-
-    SEN_5X_STATUS_CODES error = validate_checksum(buf, size);
+    SEN_5X_STATUS_CODES error = collectData(SEN_5X_READ_DATA_READY_FLAG,3);
     if (error != SEN_5X_STATUS_OK) return false;
 
     return buf[1];
 }
 SEN_5X_STATUS_CODES SEN_5X::getUnscaledMeasurement(SEN_5X_Measured_Values& values)
 {
-    return collectData(SEN_5X_READ_MEASURED_VALUES, 24, &values);
+    const uint8_t size = 24;
+    SEN_5X_STATUS_CODES error = collectData(SEN_5X_READ_MEASURED_VALUES, size);
+    if (error != SEN_5X_STATUS_OK) return error;
+
+    truncate_checksum(buf,size);
+
+    swap_endianess_words(buf, size-size/3);
+    
+    memcpy(&values, buf, size-size/3);
+
+    return error;
 }
 SEN_5X_STATUS_CODES SEN_5X::getScaledMeasurement(SEN_5x_Scaled_Measured_Values& values)
 {
+    const uint8_t size = 24;
     const SEN_5X_Measured_Values* usvalues = (const SEN_5X_Measured_Values*)buf;
     
-    SEN_5X_STATUS_CODES error = collectData(SEN_5X_READ_MEASURED_VALUES, 24);
+    SEN_5X_STATUS_CODES error = collectData(SEN_5X_READ_MEASURED_VALUES, size);
+    if (error != SEN_5X_STATUS_OK) return error;
+
+    truncate_checksum(buf,size);
+
+    swap_endianess_words(buf, size-size/3);
 
     values.PM1 = usvalues->PM1/10.f;
     values.PM25 = usvalues->PM25/10.f;
@@ -167,32 +178,80 @@ SEN_5X_STATUS_CODES SEN_5X::getScaledMeasurement(SEN_5x_Scaled_Measured_Values& 
 
 SEN_5X_STATUS_CODES SEN_5X::getTempCompensationParams(SEN_5X_Temperature_Compensation_Params& params)
 {
-    return collectData(SEN_5X_READ_WRITE_TEMP_COMP_PARAMETERS, 9, &params);
+    const uint8_t size = 9;
+    SEN_5X_STATUS_CODES error = collectData(SEN_5X_READ_WRITE_TEMP_COMP_PARAMETERS, size);
+    if (error != SEN_5X_STATUS_OK) return error;
+
+    truncate_checksum(buf,size);
+
+    swap_endianess_words(buf, size-size/3);
+    memcpy(&params, buf, size-size/3);
+    return error;
 }
 
-SEN_5X_STATUS_CODES SEN_5X::getWarmStartParam(SEN_5X_Warm_Start_Param& param)
+SEN_5X_STATUS_CODES SEN_5X::getWarmStartParam(SEN_5X_Warm_Start_Param& params)
 {
-    return collectData(SEN_5X_READ_WRITE_WARM_START_PARAMETERS, 3, &param);
+    const uint8_t size = 9;
+    SEN_5X_STATUS_CODES error = collectData(SEN_5X_READ_WRITE_WARM_START_PARAMETERS, size);
+    if (error != SEN_5X_STATUS_OK) return error;
+
+    truncate_checksum(buf,size);
+
+    swap_endianess_words(buf, size-size/3);
+    memcpy(&params, buf, size-size/3);
+    return error;
 }
 
 SEN_5X_STATUS_CODES SEN_5X::getVOCTuningParams(SEN_5X_VOC_Algorithm_Tuning_Params& params)
 {
-    return collectData(SEN_5X_READ_WRITE_VOC_ALG_TUNING_PARAMETERS, 18, &params);
+    const uint8_t size = 18;
+    SEN_5X_STATUS_CODES error = collectData(SEN_5X_READ_WRITE_VOC_ALG_TUNING_PARAMETERS, size);
+    if (error != SEN_5X_STATUS_OK) return error;
+
+    truncate_checksum(buf,size);
+
+    swap_endianess_words(buf, size-size/3);
+    memcpy(&params, buf, size-size/3);
+    return error;
 }
 
 SEN_5X_STATUS_CODES SEN_5X::getNOxTuningParams(SEN_5X_NOX_Algorithm_Tuning_Params& params)
 {
-    return collectData(SEN_5X_READ_WRITE_NOX_ALG_TUNING_PARAMETERS, 18, &params);
+    const uint8_t size = 18;
+    SEN_5X_STATUS_CODES error = collectData(SEN_5X_READ_WRITE_NOX_ALG_TUNING_PARAMETERS, size);
+    if (error != SEN_5X_STATUS_OK) return error;
+
+    truncate_checksum(buf,size);
+
+    swap_endianess_words(buf, size-size/3);
+    memcpy(&params, buf, size-size/3);
+    return error;
 }
 
 SEN_5X_STATUS_CODES SEN_5X::getRHTAccelMode(SEN_5X_RHT_Accel_Mode& mode)
 {
-    return collectData(SEN_5X_READ_WRITE_RHT_ACCELERATION_MODE, 3, &mode);
+    const uint8_t size = 3;
+    SEN_5X_STATUS_CODES error = collectData(SEN_5X_READ_WRITE_RHT_ACCELERATION_MODE, size);
+    if (error != SEN_5X_STATUS_OK) return error;
+
+    truncate_checksum(buf,size);
+
+    swap_endianess_words(buf, size-size/3);
+    memcpy(&mode, buf, size-size/3);
+    return error;
 }
 
 SEN_5X_STATUS_CODES SEN_5X::getVOCAlgorithmState(SEN_5X_VOC_Algorithm_State& state)
 {
-    return collectData(SEN_5X_READ_WRITE_VOC_ALG_STATE, 12, &state);
+    const uint8_t size = 12;
+    SEN_5X_STATUS_CODES error = collectData(SEN_5X_READ_WRITE_VOC_ALG_STATE, size);
+    if (error != SEN_5X_STATUS_OK) return error;
+
+    truncate_checksum(buf,size);
+
+    swap_endianess(buf, size-size/3);
+    memcpy(&state, buf, size-size/3);
+    return error;
 }
 
 void SEN_5X::startFanCleaning()
@@ -203,22 +262,100 @@ void SEN_5X::startFanCleaning()
 
 SEN_5X_STATUS_CODES SEN_5X::getFanCleaningInterval(SEN_5X_Auto_Cleaning_Interval& interval)
 {
-    return collectData(SEN_5X_READ_WRITE_AUTO_CLEANING_INITERVAL, 6, &interval);
+    const uint8_t size = 6;
+    SEN_5X_STATUS_CODES error = collectData(SEN_5X_READ_WRITE_AUTO_CLEANING_INITERVAL, size);
+    if (error != SEN_5X_STATUS_OK) return error;
+
+    truncate_checksum(buf,size);
+
+    swap_endianess_words(buf, size-size/3);
+    memcpy(&interval, buf, size-size/3);
+    return error;
 }
 
 SEN_5X_STATUS_CODES SEN_5X::getProductName(SEN_5X_Product_Name& name)
 {
-    return collectData(SEN_5X_READ_PRODUCT_NAME, 48, &name);
+    const uint8_t size = 48;
+    SEN_5X_STATUS_CODES error = collectData(SEN_5X_READ_PRODUCT_NAME, size);
+    // Apparently the sensor does not provide valid checksums past the null char
+    // of the string, meaning the reamaining data you should be able to read will
+    // not have a valid checksum. For the sake of simplicity, I've commented the 
+    // following line out
+
+    // if (error != SEN_5X_STATUS_OK) return error;
+
+    truncate_checksum(buf,size);
+
+    memcpy(&name, buf, size-size/3);
+    return SEN_5X_STATUS_OK;
 }
 SEN_5X_STATUS_CODES SEN_5X::getSerialNumber(SEN_5X_Serial_Number& serialNumber)
 { 
-    return collectData(SEN_5X_READ_SERIAL_NUMBER, 48, &serialNumber);
+    const uint8_t size = 48;
+    SEN_5X_STATUS_CODES error = collectData(SEN_5X_READ_SERIAL_NUMBER, size);
+    
+    // Apparently the sensor does not provide valid checksums past the null char
+    // of the string, meaning the reamaining data you should be able to read will
+    // not have a valid checksum. For the sake of simplicity, I've commented the 
+    // following line out
+
+    // if (error != SEN_5X_STATUS_OK) return error;
+
+    truncate_checksum(buf,size);
+
+    memcpy(&serialNumber, buf, size-size/3);
+    return SEN_5X_STATUS_OK;
 }
 SEN_5X_STATUS_CODES SEN_5X::getFirmwareVersion(SEN_5X_Firmware_Version& firmwareVersion)
 {
-    return collectData(SEN_5X_READ_FIRMWARE_VERSION, 3, &firmwareVersion);
+    const uint8_t size = 3;
+    SEN_5X_STATUS_CODES error = collectData(SEN_5X_READ_FIRMWARE_VERSION, size);
+    if (error != SEN_5X_STATUS_OK) return error;
+
+    firmwareVersion = buf[0];
+
+    return error;
 }
 SEN_5X_STATUS_CODES SEN_5X::getDeviceStatus(SEN_5X_Device_Status& status)
 {
-    return collectData(SEN_5X_READ_DEVICE_STATUS, 6, &status);
+    const uint8_t size = 6;
+    SEN_5X_STATUS_CODES error = collectData(SEN_5X_READ_DEVICE_STATUS, size);
+    if (error != SEN_5X_STATUS_OK) return error;
+
+    truncate_checksum(buf,size);
+
+    swap_endianess(buf, size-size/3);
+    memcpy(&status, buf, size-size/3);
+    return error;
 }
+
+// bool SEN_5X::isFanSpeedOk()
+// {
+//     collectData(SEN_5X_READ_DEVICE_STATUS,6);
+
+//     return *(uint32_t*)buf & 0x00000200;
+// }
+// bool SEN_5X::isFanCleaning()
+// {
+//     collectData(SEN_5X_READ_DEVICE_STATUS,6);
+
+//     return *(uint32_t*)buf & 0x00008000;
+// }
+// bool SEN_5X::isGasSensorRunning()
+// {
+//     collectData(SEN_5X_READ_DEVICE_STATUS,6);
+
+//     return *(uint32_t*)buf & 0x00000000;
+// }
+// bool SEN_5X::isRHTCommOk()
+// {
+
+// }
+// bool SEN_5X::isLaserOk()
+// {
+
+// }
+// bool SEN_5X::isFanOk()
+// {
+
+// }

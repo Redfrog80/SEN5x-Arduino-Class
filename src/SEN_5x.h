@@ -30,8 +30,9 @@ class SEN_5X
 
     SEN_5X_STATUS_CODES validate_checksum(uint8_t* buf, uint8_t size);
 
+    inline void swap_endianess_words(uint8_t* buf, uint8_t size);
+    inline void swap_endianess_word(uint16_t& n);
     inline void swap_endianess(uint8_t* buf, uint8_t size);
-    inline void swap_endianess_uint16(uint16_t& n);
     
     inline void truncate_checksum(uint8_t* buf, uint8_t size);
 
@@ -50,37 +51,37 @@ class SEN_5X
 
     bool isDataReady();
 
-    void getUnscaledMeasurement(SEN_5X_Measured_Values& values);
-    void getScaledMeasurement(SEN_5x_Scaled_Measured_Values& values);
+    SEN_5X_STATUS_CODES getUnscaledMeasurement(SEN_5X_Measured_Values& values);
+    SEN_5X_STATUS_CODES getScaledMeasurement(SEN_5x_Scaled_Measured_Values& values);
 
-    void getTempCompensationParams(SEN_5X_Temperature_Compensation_Params& params);
-    void setTempCompensationParams(SEN_5X_Temperature_Compensation_Params& params);
+    SEN_5X_STATUS_CODES getTempCompensationParams(SEN_5X_Temperature_Compensation_Params& params);
+    SEN_5X_STATUS_CODES setTempCompensationParams(SEN_5X_Temperature_Compensation_Params& params);
 
-    void getWarmStartParam(SEN_5X_Warm_Start_Param& param);
-    void setWarmStartParam(SEN_5X_Warm_Start_Param& param);
+    SEN_5X_STATUS_CODES getWarmStartParam(SEN_5X_Warm_Start_Param& param);
+    SEN_5X_STATUS_CODES setWarmStartParam(SEN_5X_Warm_Start_Param& param);
 
-    void getVOCTuningParams(SEN_5X_VOC_Algorithm_Tuning_Params& params);
-    void setVOCTuningParams(SEN_5X_VOC_Algorithm_Tuning_Params& params);
+    SEN_5X_STATUS_CODES getVOCTuningParams(SEN_5X_VOC_Algorithm_Tuning_Params& params);
+    SEN_5X_STATUS_CODES setVOCTuningParams(SEN_5X_VOC_Algorithm_Tuning_Params& params);
 
-    void getNOxTuningParams(SEN_5X_NOX_Algorithm_Tuning_Params& params);
-    void setNOxTuningParams(SEN_5X_NOX_Algorithm_Tuning_Params& params);
+    SEN_5X_STATUS_CODES getNOxTuningParams(SEN_5X_NOX_Algorithm_Tuning_Params& params);
+    SEN_5X_STATUS_CODES setNOxTuningParams(SEN_5X_NOX_Algorithm_Tuning_Params& params);
 
-    void getRHTAccelMode(SEN_5X_RHT_Accel_Mode& mode);
-    void setRHTAccelMode(SEN_5X_RHT_Accel_Mode& mode);
+    SEN_5X_STATUS_CODES getRHTAccelMode(SEN_5X_RHT_Accel_Mode& mode);
+    SEN_5X_STATUS_CODES setRHTAccelMode(SEN_5X_RHT_Accel_Mode& mode);
 
-    void getVOCAlgorithmState(SEN_5X_VOC_Algorithm_State& state);
-    void setVOCAlgorithmState(SEN_5X_VOC_Algorithm_State& state);
+    SEN_5X_STATUS_CODES getVOCAlgorithmState(SEN_5X_VOC_Algorithm_State& state);
+    SEN_5X_STATUS_CODES setVOCAlgorithmState(SEN_5X_VOC_Algorithm_State& state);
 
     void startFanCleaning();
 
-    void getFanCleaningInterval(SEN_5X_Auto_Cleaning_Interval& interval);
-    void setFanCleaningInterval(SEN_5X_Auto_Cleaning_Interval& interval);
+    SEN_5X_STATUS_CODES getFanCleaningInterval(SEN_5X_Auto_Cleaning_Interval& interval);
+    SEN_5X_STATUS_CODES setFanCleaningInterval(SEN_5X_Auto_Cleaning_Interval& interval);
 
-    void getProductName(SEN_5X_Product_Name& name);
-    void getSerialNumber(SEN_5X_Serial_Number& serialNumber);
-    void getFirmwareVersion(SEN_5X_Firmware_Version& firmwareVersion);
+    SEN_5X_STATUS_CODES getProductName(SEN_5X_Product_Name& name);
+    SEN_5X_STATUS_CODES getSerialNumber(SEN_5X_Serial_Number& serialNumber);
+    SEN_5X_STATUS_CODES getFirmwareVersion(SEN_5X_Firmware_Version& firmwareVersion);
     
-    void getDeviceStatus(SEN_5X_Device_Status& status);
+    SEN_5X_STATUS_CODES getDeviceStatus(SEN_5X_Device_Status& status);
     
     bool isFanSpeedOk();
     bool isFanCleaning();

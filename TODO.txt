@@ -1,6 +1,8 @@
-Clean up checksum validation / generator code
-Clean up isDataReady function
 Remaining status functions
-Error types / error reporting
+    Cache status
+    automatically check sensor status when calling getters?
+
+Error types / error reporting?
+    Deliberation on whether or not this should be done with a reference or a return value.
 All setters
 

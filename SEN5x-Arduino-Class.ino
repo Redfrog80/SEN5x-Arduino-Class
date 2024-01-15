@@ -3,8 +3,8 @@
  * @author Redfrog80
  * @brief This is an example program for basic usage 
  * for the SEN5X class.
- * @version 0.2
- * @date 2023-11-28
+ * @version 0.2.1
+ * @date 2024-1-15
  * 
  * @copyright Copyright (c) 2023
  * */
@@ -20,30 +20,18 @@ void setup(){
     
     Serial.begin(115200);
     while(!Serial){};
-
+    sensor.reset();
     sensor.start();
 }
 
 void loop(){
     if (sensor.isDataReady())
     {
-        SEN_5x_Scaled_Measured_Values values = {};
-        sensor.getScaledMeasurement(values);
-        Serial.print(F("PM: "));
-        Serial.print(values.PM1);
-        Serial.print(F(", "));
-        Serial.print(values.PM25);
-        Serial.print(F(", "));
-        Serial.print(values.PM4);
-        Serial.print(F(", "));
-        Serial.print(values.PM10);
-        Serial.print(F(", "));
-        Serial.print(F("Humidity: "));
-        Serial.print(values.CAH);
-        Serial.print(F(", Temperature (C): "));
-        Serial.print(values.CAT);
-        Serial.print(F(", VOC Index: "));
-        Serial.println(values.VOC);
+        SEN_5X_Product_Name params = {};
+        sensor.getProductName(params);
+        Serial.println(params);
+
+        Serial.print(F("\n"));
     }
     delay(2000);
 }
